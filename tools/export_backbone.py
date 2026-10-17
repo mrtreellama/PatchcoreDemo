@@ -24,6 +24,7 @@ MODELS_DIR = ROOT / "public" / "models"
 EXPORT_VERSION = 1
 OPSET = 17
 PROJECTION_SEED = 1234
+MAX_FILE_BYTES = 95_000_000  # headroom under the 100 MB GitHub / Pages limit
 
 BACKBONES = {
     "r18": dict(
@@ -111,17 +112,26 @@ def export_backbone(bid: str, size: int, path: Path) -> None:
     onnx.checker.check_model(str(path))
 
 
-def to_fp16_weights(src: Path, dst: Path, min_elems: int = 1024) -> None:
+def to_fp16_weights(src: Path, dst: Path, fp16_prefix: str = "/layer3/", min_elems: int = 1024) -> None:
     """Store large float initializers as fp16 and Cast them back to fp32 in-graph.
 
     Compute stays fp32 (WASM has no fp16 kernels), only the download shrinks.
+    Only weights consumed by nodes under `fp16_prefix` (layer 3, the bulk of the
+    parameters) are rounded: errors in earlier layers compound and would push
+    the features past the 1e-3 parity tolerance.
     """
     model = onnx.load(str(src))
     g = model.graph
+    consumers: dict[str, list[str]] = {}
+    for node in g.node:
+        for name in node.input:
+            consumers.setdefault(name, []).append(node.name)
     casts = []
     new_inits = []
     for init in g.initializer:
-        if init.data_type == TensorProto.FLOAT and int(np.prod(init.dims)) >= min_elems:
+        users = consumers.get(init.name, [])
+        late = bool(users) and all(u.startswith(fp16_prefix) for u in users)
+        if init.data_type == TensorProto.FLOAT and int(np.prod(init.dims)) >= min_elems and late:
             arr = numpy_helper.to_array(init).astype(np.float16)
             half_name = init.name + "__fp16"
             new_inits.append(numpy_helper.from_array(arr, half_name))
@@ -185,17 +195,23 @@ def main() -> None:
             export_backbone(bid, size, p)
             variants = [("fp32", p)]
             if bid == "wrn50":
-                # FP32 is over the Pages budget; ship FP16 weights if they pass parity in reference.py.
+                # FP16 weights halve the download; reference.py checks parity against PyTorch FP32.
                 p16 = MODELS_DIR / f"backbone_{bid}_{size}_fp16.onnx"
                 to_fp16_weights(p, p16)
                 variants = [("fp32", p), ("fp16", p16)]
+            if p.stat().st_size > MAX_FILE_BYTES:
+                # GitHub (push) and Pages both reject files over 100 MB: ship the FP16 variant only.
+                print(f"{p.name}: {p.stat().st_size / 1e6:.1f} MB is over the limit, not shipped")
+                p.unlink()
+                variants = [v for v in variants if v[0] != "fp32"]
+                manifest["models"] = [m for m in manifest["models"] if m["key"] != p.stem.replace("backbone_", "")]
             for dtype, vp in variants:
                 mb = vp.stat().st_size / 1e6
                 print(f"{vp.name}: {mb:.1f} MB")
                 upsert(manifest, {
                     "key": vp.stem.replace("backbone_", ""),
                     "id": bid,
-                    "name": f"{spec['name']} @ {size}" + (" (FP16 weights)" if dtype == "fp16" else ""),
+                    "name": f"{spec['name']} @ {size}" + (" (FP16 layer 3)" if dtype == "fp16" else ""),
                     "file": vp.name,
                     "inputSize": size,
                     "grid": size // 8,

@@ -32,7 +32,7 @@ async function precache(urls, client) {
   let done = 0;
   for (const url of urls) {
     try {
-      if (!(await cache.match(url))) {
+      if (!(await cache.match(url, { ignoreVary: true }))) {
         const res = await fetch(url, { cache: 'no-cache' });
         if (res.ok) await cache.put(url, res);
       }
@@ -53,7 +53,8 @@ function withIsolation(response) {
 
 async function cacheFirst(request) {
   const cache = await caches.open(CACHE);
-  const hit = await cache.match(request);
+  // ignoreVary: servers send Vary: Origin, and module requests carry an Origin header precache fetches lack.
+  const hit = await cache.match(request, { ignoreVary: true });
   if (hit) return hit;
   const res = await fetch(request);
   if (res.ok) cache.put(request, res.clone());
@@ -67,7 +68,7 @@ async function networkFirst(request) {
     if (res.ok) cache.put(request, res.clone());
     return res;
   } catch (err) {
-    const hit = await cache.match(request, { ignoreSearch: request.mode === 'navigate' });
+    const hit = await cache.match(request, { ignoreSearch: request.mode === 'navigate', ignoreVary: true });
     if (hit) return hit;
     throw err;
   }

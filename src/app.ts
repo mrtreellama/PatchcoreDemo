@@ -19,7 +19,7 @@ import { decodePcprof, encodePcprof } from './profiles/pcprof';
 import { maxHeldOf, newId, type Profile, type ProfileHeader, type Roi } from './profiles/types';
 import { deviceInfo, type DeviceInfo } from './util/device';
 import { FpsMeter, nextFrame, sleep } from './util/stats';
-import { precache, type CoiStatus } from './util/coi';
+import { precache, waitForController, type CoiStatus } from './util/coi';
 import { composeSnapshot } from './ui/overlay';
 
 export const BASE = import.meta.env.BASE_URL;
@@ -95,6 +95,8 @@ export interface AppState {
   snapshots: string[];
   lastSceneChange: number;
   precache?: string;
+  /** Shell, current model and samples are in the service-worker cache. */
+  offlineReady: boolean;
 }
 
 export const store = new Store<AppState>({
@@ -118,6 +120,7 @@ export const store = new Store<AppState>({
   teach: { frames: [], target: DEFAULT_FRAMES, auto: false, busy: false, name: '', notes: '' },
   rig: '',
   snapshots: [],
+  offlineReady: false,
   lastSceneChange: performance.now(),
 });
 
@@ -181,6 +184,7 @@ export async function start(coi: CoiStatus): Promise<void> {
   const id = S().profiles.some((p) => p.id === activeId) ? activeId : fallback;
   if (id) await activateProfile(id).catch(() => undefined);
   store.set({ booted: true });
+  void warmOfflineCache();
 }
 
 async function startEngine(): Promise<void> {
@@ -476,7 +480,15 @@ export function setTeachField(patch: Partial<AppState['teach']>) {
   store.set((s) => ({ teach: { ...s.teach, ...patch } }));
 }
 
-export async function captureFrame(): Promise<void> {
+let capturing: Promise<void> = Promise.resolve();
+
+/** Captures are serialised so quick clicks never grab the same frame twice. */
+export function captureFrame(): Promise<void> {
+  capturing = capturing.then(captureOne, captureOne);
+  return capturing;
+}
+
+async function captureOne(): Promise<void> {
   const t = S().teach;
   if (!source?.ready() || !client || S().mode !== 'teach') return;
   if (t.frames.length >= MAX_FRAMES) return notify(`Maximum ${MAX_FRAMES} frames`, 'warn');
@@ -485,6 +497,8 @@ export async function captureFrame(): Promise<void> {
   const id = newId();
   const roi = S().roi;
   const [bmp, thumbBmp] = await Promise.all([source.grab(roi, entry.inputSize), source.grab(roi, 128)]);
+  // Image-file sources step forward so repeated captures cover the set.
+  if (source instanceof ImageSource) source.next();
   const c = document.createElement('canvas');
   c.width = c.height = 128;
   c.getContext('2d')!.drawImage(thumbBmp, 0, 0);
@@ -498,8 +512,6 @@ export async function captureFrame(): Promise<void> {
     removeFrame(id);
     fail(e, 'Feature extraction failed: ');
   }
-  // Image-file sources step forward so repeated captures cover the set.
-  if (source instanceof ImageSource) source.next();
 }
 
 export function removeFrame(id: string) {
@@ -722,17 +734,51 @@ export async function importProfiles(files: File[]) {
 
 // ---- Offline ----------------------------------------------------------------------
 
-export async function makeOffline() {
-  const m = S().manifest;
-  if (!m) return;
+const modelUrl = (e: { file: string; sha256: string }) => `${BASE}models/${e.file}?v=${e.sha256.slice(0, 12)}`;
+
+/** Everything the app needs to start and detect without a network connection. */
+async function offlineUrls(allModels: boolean): Promise<string[]> {
+  const m = S().manifest!;
   const samples = (await (await fetch(`${BASE}samples/samples.json`)).json()) as { images: { file: string }[] };
-  const urls = [
-    ...m.models.map((e) => `${BASE}models/${e.file}?v=${e.sha256.slice(0, 12)}`),
-    `${BASE}models/${m.knn.file}?v=${m.knn.sha256.slice(0, 12)}`,
+  const bundled = (await (await fetch(`${BASE}profiles/profiles.json`)).json()) as { profiles: { file: string }[] };
+  const models = allModels ? m.models : m.models.filter((e) => e.key === S().modelKey);
+  // App shell, hashed bundles and the worker script, as already loaded by this page.
+  const loaded = performance.getEntriesByType('resource')
+    .map((e) => e.name)
+    .filter((u) => u.startsWith(location.origin + BASE) && /\/assets\//.test(u));
+  return [...new Set([
+    BASE,
+    ...loaded,
+    `${BASE}ort/ort-wasm-simd-threaded.asyncify.mjs`,
+    `${BASE}ort/ort-wasm-simd-threaded.asyncify.wasm`,
+    `${BASE}models/models.json`,
+    `${BASE}samples/samples.json`,
+    `${BASE}profiles/profiles.json`,
+    `${BASE}brand/accudyne-logo.svg`,
+    `${BASE}brand/favicon.svg`,
+    ...bundled.profiles.map((p) => `${BASE}profiles/${p.file}`),
     ...samples.images.map((i) => `${BASE}samples/${i.file}`),
-  ];
+    ...models.map(modelUrl),
+    modelUrl(m.knn),
+  ])];
+}
+
+/** After startup, quietly cache what this booth needs so it survives Wi-Fi drops. */
+async function warmOfflineCache() {
+  if (import.meta.env.DEV || !(await waitForController())) return;
+  try {
+    await precache(await offlineUrls(false));
+    store.set({ offlineReady: true });
+  } catch (e) {
+    console.warn('Offline cache warm-up failed', e);
+  }
+}
+
+export async function makeOffline() {
+  if (!S().manifest) return;
   store.set({ precache: 'Starting…' });
   try {
+    const urls = await offlineUrls(true);
     await precache(urls, (d, t) => store.set({ precache: `Cached ${d} / ${t}` }));
     store.set({ precache: `All ${urls.length} files available offline` });
   } catch (e) {

@@ -26,6 +26,32 @@
       "bytes": 11131782,
       "sha256": "38d5191189ad568f719526827a7c7ebfe3cb874231bfef2f60e3d73a124942c7",
       "exportVersion": 1
+    },
+    {
+      "key": "wrn50_224_fp16",
+      "id": "wrn50",
+      "name": "Wide ResNet-50-2 @ 224 (FP16 layer 3)",
+      "file": "backbone_wrn50_224_fp16.onnx",
+      "inputSize": 224,
+      "grid": 28,
+      "D": 512,
+      "dtype": "fp16",
+      "bytes": 61107739,
+      "sha256": "b864048dd5afddf4841443ee4eb7750bf3d59d6a649b06854c64643c5fb90e2d",
+      "exportVersion": 1
+    },
+    {
+      "key": "wrn50_320_fp16",
+      "id": "wrn50",
+      "name": "Wide ResNet-50-2 @ 320 (FP16 layer 3)",
+      "file": "backbone_wrn50_320_fp16.onnx",
+      "inputSize": 320,
+      "grid": 40,
+      "D": 512,
+      "dtype": "fp16",
+      "bytes": 61107739,
+      "sha256": "14adfeccfc33b114c822388f723f123b6a2f04a8515b6636f6c6cac0a16e8611",
+      "exportVersion": 1
     }
   ],
   "knn": {

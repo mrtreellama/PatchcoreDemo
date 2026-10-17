@@ -41,6 +41,17 @@ export async function ensureIsolation(): Promise<CoiStatus> {
   return 'not-isolated';
 }
 
+/** Resolves once a service worker controls this page (or after `timeoutMs`). */
+export async function waitForController(timeoutMs = 10_000): Promise<boolean> {
+  if (!('serviceWorker' in navigator)) return false;
+  if (navigator.serviceWorker.controller) return true;
+  await new Promise<void>((resolve) => {
+    navigator.serviceWorker.addEventListener('controllerchange', () => resolve(), { once: true });
+    setTimeout(resolve, timeoutMs);
+  });
+  return !!navigator.serviceWorker.controller;
+}
+
 /** Asks the service worker to cache every listed URL now (for offline booths). */
 export function precache(urls: string[], onProgress?: (done: number, total: number) => void): Promise<void> {
   const ctl = navigator.serviceWorker?.controller;

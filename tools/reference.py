@@ -111,8 +111,6 @@ def detect(f, prof, grid, size):
 
 def check_parity(entry: dict, images: list[np.ndarray]) -> float:
     module = build_module(entry["id"])
-    if entry["dtype"] == "fp16":
-        pass  # compared against the fp32 PyTorch module: weight rounding is what we measure
     bb = Backbone(entry)
     worst = 0.0
     with torch.no_grad():
@@ -150,8 +148,9 @@ def main():
         parity[key] = err
         status = "OK" if err <= PARITY_TOL else "FAIL"
         print(f"parity {key}: max abs err {err:.2e} {status}")
-        if entry["dtype"] == "fp32":
-            assert err <= PARITY_TOL, f"{key} ONNX/PyTorch mismatch {err}"
+        # FP16-weight variants are measured against the FP32 PyTorch model too;
+        # one that misses the tolerance must not ship.
+        assert err <= PARITY_TOL, f"{key} ONNX/PyTorch mismatch {err}"
     (FIX / "parity_report.json").write_text(json.dumps(parity, indent=2))
 
     # ---- 2. Math fixtures on fp16-rounded r18@224 features --------------------

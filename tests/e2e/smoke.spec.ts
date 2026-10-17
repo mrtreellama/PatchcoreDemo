@@ -57,3 +57,17 @@ test('booth mode shows a verdict banner and exits with Ctrl+Shift+E', async ({ p
   await page.keyboard.press('Control+Shift+E');
   await expect(page).toHaveURL(/#\/operator$/);
 });
+
+test('keeps detecting offline after the first load', async ({ page, context }) => {
+  await page.goto('./');
+  await waitReady(page);
+  await page.waitForFunction(() => (window as any).patchcore.store.state.offlineReady, null, { timeout: 60_000 });
+  await context.setOffline(true);
+  await page.reload();
+  await waitReady(page);
+  await expect(page.getByTestId('profile-select')).toContainText('Carbon twill (demo)');
+  await page.evaluate(() => (window as any).patchcore.getSource().show(4));
+  await waitForFrames(page, 4);
+  await expect(page.getByTestId('verdict')).toHaveText('DEFECT');
+  await context.setOffline(false);
+});
