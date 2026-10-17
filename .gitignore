@@ -6,3 +6,5 @@ __pycache__/
 test-results/
 playwright-report/
 .vite/
+public/ort/
+tools/.cache/
