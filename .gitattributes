@@ -1,0 +1,10 @@
+* text=auto eol=lf
+*.onnx binary
+*.f16 binary
+*.f32 binary
+*.u8 binary
+*.i32 binary
+*.pcprof binary
+*.jpg binary
+*.png binary
+*.y4m binary
