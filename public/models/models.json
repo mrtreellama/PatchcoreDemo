@@ -1,0 +1,35 @@
+{
+  "exportVersion": 1,
+  "models": [
+    {
+      "key": "r18_224",
+      "id": "r18",
+      "name": "ResNet-18 @ 224",
+      "file": "backbone_r18_224.onnx",
+      "inputSize": 224,
+      "grid": 28,
+      "D": 384,
+      "dtype": "fp32",
+      "bytes": 11131782,
+      "sha256": "fe2bd557b2c8b44c799de365d727b7e9aff2fd11effaf20e57a1226a0cce9b4f",
+      "exportVersion": 1
+    },
+    {
+      "key": "r18_320",
+      "id": "r18",
+      "name": "ResNet-18 @ 320",
+      "file": "backbone_r18_320.onnx",
+      "inputSize": 320,
+      "grid": 40,
+      "D": 384,
+      "dtype": "fp32",
+      "bytes": 11131782,
+      "sha256": "38d5191189ad568f719526827a7c7ebfe3cb874231bfef2f60e3d73a124942c7",
+      "exportVersion": 1
+    }
+  ],
+  "knn": {
+    "file": "knn.onnx",
+    "sha256": "373628ae58e6fde5a6e21b385b3dfd8e06307b30ec3a88fe004c1daf7f0d6f2d"
+  }
+}

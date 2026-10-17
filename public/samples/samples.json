@@ -1,0 +1,84 @@
+{
+  "images": [
+    {
+      "file": "good_100.jpg",
+      "kind": "good",
+      "role": "teach"
+    },
+    {
+      "file": "good_101.jpg",
+      "kind": "good",
+      "role": "teach"
+    },
+    {
+      "file": "good_102.jpg",
+      "kind": "good",
+      "role": "teach"
+    },
+    {
+      "file": "good_103.jpg",
+      "kind": "good",
+      "role": "teach"
+    },
+    {
+      "file": "good_104.jpg",
+      "kind": "good",
+      "role": "teach"
+    },
+    {
+      "file": "good_105.jpg",
+      "kind": "good",
+      "role": "teach"
+    },
+    {
+      "file": "good_106.jpg",
+      "kind": "good",
+      "role": "teach"
+    },
+    {
+      "file": "good_200.jpg",
+      "kind": "good",
+      "role": "test"
+    },
+    {
+      "file": "good_201.jpg",
+      "kind": "good",
+      "role": "test"
+    },
+    {
+      "file": "good_202.jpg",
+      "kind": "good",
+      "role": "test"
+    },
+    {
+      "file": "dropped_tow_300.jpg",
+      "kind": "dropped_tow",
+      "role": "test"
+    },
+    {
+      "file": "foreign_patch_301.jpg",
+      "kind": "foreign_patch",
+      "role": "test"
+    },
+    {
+      "file": "wrinkle_302.jpg",
+      "kind": "wrinkle",
+      "role": "test"
+    },
+    {
+      "file": "dropped_tow_303.jpg",
+      "kind": "dropped_tow",
+      "role": "test"
+    },
+    {
+      "file": "foreign_patch_304.jpg",
+      "kind": "foreign_patch",
+      "role": "test"
+    },
+    {
+      "file": "wrinkle_305.jpg",
+      "kind": "wrinkle",
+      "role": "test"
+    }
+  ]
+}
