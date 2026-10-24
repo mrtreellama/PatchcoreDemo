@@ -2,8 +2,9 @@
 import { defaultClientConditions, defineConfig } from 'vite';
 import preact from '@preact/preset-vite';
 
-// GitHub Pages serves the site from /<repo>/. Override with BASE=/ for other hosts.
-const base = process.env.BASE ?? '/PatchcoreDemo/';
+// Served from the root of its own subdomain (patchcore.castleautomation.com).
+// Set BASE=/PatchcoreDemo/ to host it as a plain GitHub Pages project site.
+const base = process.env.BASE ?? '/';
 
 // Dev and preview servers can set the isolation headers directly; on Pages the
 // service worker (public/sw.js) adds them instead.

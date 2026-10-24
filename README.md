@@ -2,7 +2,7 @@
 
 Live, in-browser anomaly detection for composite materials, built as a trade-show demo for Accudyne Systems. You teach it a material from a handful of good samples in a few seconds. It then shows a live heatmap and a PASS / DEFECT verdict for each camera frame. Everything runs in the browser: there is no server, no install and no cloud inference.
 
-**Live site:** https://mrtreellama.github.io/PatchcoreDemo/ (after the first deploy)
+**Live site:** https://patchcore.castleautomation.com/
 
 It works in Chrome and Edge on laptops, mini PCs, Chromebooks and Android phones. Inference uses ONNX Runtime Web on WebGPU, with automatic fallback to WASM.
 
@@ -68,7 +68,7 @@ npx playwright install chromium
 npx playwright test
 ```
 
-- `npm run dev` starts a dev server at `http://localhost:5173/PatchcoreDemo/`.
+- `npm run dev` starts a dev server at `http://localhost:5173/`.
 - `npm test` runs the unit tests: the TypeScript math and ONNX Runtime Web features against the Python fixtures, the `.pcprof` round trip, and hysteresis.
 - `npm run build` writes the production build to `dist/`.
 - `npx playwright install chromium` is needed once, before the first end-to-end run.
@@ -107,6 +107,12 @@ The test images are procedurally generated carbon-twill textures with planted de
 ## Deployment
 
 Every push to `main` runs the unit and end-to-end tests in GitHub Actions and then deploys `dist/` to GitHub Pages (`.github/workflows/pages.yml`). Before the first deploy, set the repository's **Settings → Pages → Source** to **GitHub Actions**.
+
+The site is served from the root of its own subdomain, `patchcore.castleautomation.com`:
+
+- DNS: a `CNAME` record `patchcore` → `mrtreellama.github.io`.
+- **Settings → Pages → Custom domain** is set to `patchcore.castleautomation.com`, with **Enforce HTTPS** on. `public/CNAME` records the same name.
+- The build uses base path `/`. To host it as a plain project site at `https://<user>.github.io/PatchcoreDemo/` instead, build with `BASE=/PatchcoreDemo/`.
 
 GitHub Pages can't set HTTP headers. To enable multithreaded WASM, `public/sw.js` adds the COOP/COEP headers itself. The page reloads once on the very first visit so the headers take effect. The same service worker caches the app, so the booth keeps working if the venue Wi-Fi drops.
 

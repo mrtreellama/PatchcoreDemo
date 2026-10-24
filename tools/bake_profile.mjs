@@ -20,7 +20,7 @@ const scenes = readdirSync(SCENES).filter((f) => f.endsWith('.jpg')).sort().map(
 if (!scenes.length) throw new Error(`No scenes in ${SCENES}; run tools/reference.py first`);
 
 const server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { cwd: ROOT, shell: true, stdio: 'ignore' });
-const url = `http://localhost:${PORT}/PatchcoreDemo/`;
+const url = `http://localhost:${PORT}/`;
 try {
   for (let i = 0; ; i++) {
     try { if ((await fetch(url)).ok) break; } catch { /* not up yet */ }
